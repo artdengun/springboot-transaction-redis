@@ -1,0 +1,28 @@
+spring:
+  # connection for postgresql
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    username: springtest
+    password: springtest
+    url: jdbc:postgresql://localhost:5432/springtest
+  # redis koneksi untuk caching prosess agar aplikasi bisa lebih cepat berjalan
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 10000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-wait: -1ms
+        max-idle: 8
+        min-idle: 8
+    cache:
+      type: redis
+      redis:
+        timeToLive: 30
+
+
+  # jpa presitance api methode generate-ddl = membuat dan menghapus data otomatis
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    generate-ddl: true
