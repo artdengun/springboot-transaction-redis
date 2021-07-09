@@ -85,7 +85,7 @@ public class MLibrarysServiceImpl implements MLibraryService {
     }
 
 
-    @Transactional // BEGIN //isolation read commited dan propagation required
+    @Transactional
     @CacheEvict(cacheNames = "libraryCache", allEntries = true)
     @Override
     public MLibrarysResponseDto add(MLibrarysRequestDto library) throws Exception {
@@ -136,7 +136,7 @@ public class MLibrarysServiceImpl implements MLibraryService {
         return responseDto;
     }
 
-    @Transactional(isolation = Isolation.READ_UNCOMMITTED) // membaca tapi tidak melakukan commited
+    @Transactional(isolation = Isolation.READ_UNCOMMITTED)
     @Cacheable(cacheNames = "libraryCache")
     @Override
     public List<MLibrarysResponseDto> read() {
@@ -154,7 +154,7 @@ public class MLibrarysServiceImpl implements MLibraryService {
         return libraryResponse;
     }
 
-    @Transactional(propagation = Propagation.REQUIRED)
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     @Caching(evict = { @CacheEvict(cacheNames = "library", key = "#id"),
             @CacheEvict(cacheNames = "libraryCache", allEntries = true) })
     @Override
@@ -168,8 +168,7 @@ public class MLibrarysServiceImpl implements MLibraryService {
         librarysRepository.deleteById(id);
     }
 
-    @Transactional(rollbackFor = Exception.class,
-                    noRollbackFor = EntityNotFoundException.class)
+    @Transactional(propagation  = Propagation.REQUIRED)
     @Cacheable(cacheNames = "libraryCache", key = "#id", unless = "#result == null")
     @Override
     public MLibrarysResponseDto findById(String id) throws Exception {
@@ -186,7 +185,7 @@ public class MLibrarysServiceImpl implements MLibraryService {
         return librarysResponseDto;
     }
 
-    @Transactional
+    @Transactional(propagation  = Propagation.REQUIRED)
     @Cacheable(cacheNames = "libraryCache", key = "#name", unless = "#result == null")
     @Override
     public MLibrarysResponseDto findByName(String name) throws Exception {

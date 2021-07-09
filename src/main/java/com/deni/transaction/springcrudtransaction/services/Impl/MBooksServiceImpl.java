@@ -9,23 +9,32 @@ import com.deni.transaction.springcrudtransaction.models.MBooksModel;
 import com.deni.transaction.springcrudtransaction.repositories.MBooksRepository;
 import com.deni.transaction.springcrudtransaction.services.MBooksService;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-@Slf4j
+
 @Service
 @CacheConfig(cacheNames = "booksCache")
 public class MBooksServiceImpl implements MBooksService {
+
+    Logger logger = LoggerFactory.getLogger(MBooksServiceImpl.class);
+
 
     @Autowired
     public MBooksRepository booksRepository;
 
 
+    @Transactional
     @CacheEvict(cacheNames = "booksCache", allEntries = true)
     @Override
     public MBooksResponseDto addSomeBooks(MBooksRequestDto requestDto)  {
@@ -51,18 +60,19 @@ public class MBooksServiceImpl implements MBooksService {
         return responseDto;
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     @CacheEvict(cacheNames = "booksCache", key = "#id", allEntries = true)
     @Override
     public MBooksResponseDto updateSomeBooks(String id, MBooksRequestDto requestDto) throws Exception {
 
         // 1. get datanya berdasarkan id
         Optional<MBooksModel> update = booksRepository.findById(id);
-
+        logger.info("Melakukan pencarian id berdasarkan data yang dicari");
         // 2. kita melakukan check apakah data yang kita punya ada
         if (update.isEmpty()) {
             throw  new BooksFindByIdNotFoundException("Id tidak ditemukan");
         }
-
+        logger.info("data ditemukan, lakukan set data lama ke baru ");
         // 3. jika ditemukan set data lama ke data yang terbaru dan kemudian save datanya
             update.get().setNameBooks(requestDto.getNameBooks());
             update.get().setTitleBooks(requestDto.getTitleBooks());
@@ -87,6 +97,7 @@ public class MBooksServiceImpl implements MBooksService {
         return responseDto;
     }
 
+    @Transactional(isolation = Isolation.READ_UNCOMMITTED)
     @Cacheable(cacheNames = "booksCache")
     @Override
     public List<MBooksResponseDto> tampilkanData() {
@@ -112,6 +123,7 @@ public class MBooksServiceImpl implements MBooksService {
         return responseDtos;
     }
 
+    @Transactional(propagation = Propagation.MANDATORY)
     @Caching(evict = { @CacheEvict(cacheNames = "books", key = "#id"),
             @CacheEvict(cacheNames = "booksCache", allEntries = true) })
     @Override
@@ -119,13 +131,17 @@ public class MBooksServiceImpl implements MBooksService {
         // 1. cari data by id
         Optional<MBooksModel> findBook= booksRepository.findById(id);
         // 2. kita melakukan cek apakah id yang kita maksud itu ada
+        logger.info("Melakukan pencarian id berdasarkan data yang dicari");
+
         if (findBook.isEmpty()) {
             throw  new BooksFindNotFoundsException("Data yang anda cari tidak ditemukan");
         }
+        logger.info("Data ditemukan, lakukan delete data");
         // 3. jika ditemukan maka eksekusi datanya
         booksRepository.deleteById(id);
     }
 
+    @Transactional(propagation = Propagation.REQUIRED)
     @Cacheable(cacheNames = "booksCache", key = "#id", unless = "#result == null")
     @Override
     public MBooksResponseDto findById(String id) throws Exception {
@@ -150,15 +166,17 @@ public class MBooksServiceImpl implements MBooksService {
 
     }
 
+    @Transactional(propagation = Propagation.REQUIRED)
     @Cacheable(cacheNames = "booksCache", key = "#nameBooks", unless = "#result == null")
     @Override
     public MBooksResponseDto findByName(String nameBooks) throws Exception {
 
         Optional<MBooksModel> mencariDataByNama = booksRepository.findByName(nameBooks);
-
+        logger.info("Melakukan pencarian id berdasarkan data nama");
         if(mencariDataByNama.isEmpty()){
             throw new BooksFindByNameNotFoundException("nama tidak tidak ditemukan");
         }
+        logger.info("Data nama ditemukan, lakukan eksekusi");
         MBooksResponseDto responseDto = new MBooksResponseDto();
         responseDto.setId(mencariDataByNama.get().getId());
         responseDto.setNameBooks(mencariDataByNama.get().getNameBooks());
@@ -170,5 +188,7 @@ public class MBooksServiceImpl implements MBooksService {
         return responseDto;
 
     }
+
+
 
 }
