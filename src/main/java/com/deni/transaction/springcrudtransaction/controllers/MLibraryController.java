@@ -3,6 +3,7 @@ package com.deni.transaction.springcrudtransaction.controllers;
 import com.deni.transaction.springcrudtransaction.dtos.MLibrarysRequestDto;
 import com.deni.transaction.springcrudtransaction.dtos.MLibrarysResponseDto;
 import com.deni.transaction.springcrudtransaction.services.MLibraryService;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.repository.query.Param;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +12,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping(value = "/library")
+@AllArgsConstructor
 public class MLibraryController {
 
     @Autowired private MLibraryService libraryService;

@@ -19,4 +19,6 @@ public interface MBooksRepository extends JpaRepository<MBooksModel, String> {
     // query contoh ajah untuk mencari data Nama
     @Query(value = "SELECT * FROM books d WHERE d.name_books= :name_books", nativeQuery = true)
     Optional<MBooksModel> findByName(@Param("name_books") String nameBooks);
+
+
 }

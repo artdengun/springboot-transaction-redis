@@ -4,14 +4,15 @@ package com.deni.transaction.springcrudtransaction.controllers;
 import com.deni.transaction.springcrudtransaction.dtos.MBooksRequestDto;
 import com.deni.transaction.springcrudtransaction.dtos.MBooksResponseDto;
 import com.deni.transaction.springcrudtransaction.services.MBooksService;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
 import java.util.List;
 
 @RestController
 @RequestMapping(value = "/books")
+@AllArgsConstructor
 public class MBooksController {
 
     @Autowired

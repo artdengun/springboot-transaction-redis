@@ -9,14 +9,19 @@ import com.deni.transaction.springcrudtransaction.models.MLibrarysModel;
 import com.deni.transaction.springcrudtransaction.repositories.MBooksRepository;
 import com.deni.transaction.springcrudtransaction.repositories.MLibrarysRepository;
 import com.deni.transaction.springcrudtransaction.services.MLibraryService;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.EntityNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +29,9 @@ import java.util.Optional;
 @Service
 @CacheConfig(cacheNames = "libraryCache")
 public class MLibrarysServiceImpl implements MLibraryService {
+
+    Logger logger = LoggerFactory.getLogger(MLibrarysServiceImpl.class);
+
 
     private MBooksRepository booksRepository;
     private MLibrarysRepository librarysRepository;
@@ -77,6 +85,7 @@ public class MLibrarysServiceImpl implements MLibraryService {
     }
 
 
+    @Transactional // BEGIN //isolation read commited dan propagation required
     @CacheEvict(cacheNames = "libraryCache", allEntries = true)
     @Override
     public MLibrarysResponseDto add(MLibrarysRequestDto library) throws Exception {
@@ -98,6 +107,7 @@ public class MLibrarysServiceImpl implements MLibraryService {
         return responseDtos;
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     @CacheEvict(cacheNames = "libraryCache", key = "#id", allEntries = true)
     @Override
     public MLibrarysResponseDto update(String id, MLibrarysRequestDto requestDto) throws Exception {
@@ -126,6 +136,7 @@ public class MLibrarysServiceImpl implements MLibraryService {
         return responseDto;
     }
 
+    @Transactional(isolation = Isolation.READ_UNCOMMITTED) // membaca tapi tidak melakukan commited
     @Cacheable(cacheNames = "libraryCache")
     @Override
     public List<MLibrarysResponseDto> read() {
@@ -143,39 +154,48 @@ public class MLibrarysServiceImpl implements MLibraryService {
         return libraryResponse;
     }
 
+    @Transactional(propagation = Propagation.REQUIRED)
     @Caching(evict = { @CacheEvict(cacheNames = "library", key = "#id"),
             @CacheEvict(cacheNames = "libraryCache", allEntries = true) })
     @Override
     public void delete(String id) throws Exception {
         Optional<MLibrarysModel> findBook = librarysRepository.findById(id);
+        logger.info("melakukan pencarian id untukd delete data");
         if(findBook.isEmpty()){
             throw  new LibraryFindByIdNotFoundException("id not found");
         }
-
+        logger.info("id ditemukan, melakuan delete data");
         librarysRepository.deleteById(id);
     }
 
+    @Transactional(rollbackFor = Exception.class,
+                    noRollbackFor = EntityNotFoundException.class)
     @Cacheable(cacheNames = "libraryCache", key = "#id", unless = "#result == null")
     @Override
     public MLibrarysResponseDto findById(String id) throws Exception {
         Optional<MLibrarysModel> findBook = librarysRepository.findById(id);
+        logger.info("melakukan pengecekan id ");
         if(findBook.isEmpty()){
             throw  new LibraryFindByIdNotFoundException("data tidak ditemukan");
         }
+        logger.info("data ditemukan, lakukan response balik ");
+
         MBooksResponseDto responseDto = buildBookResponseFromModel(findBook.get().getBooks());
         MLibrarysResponseDto librarysResponseDto = buildLibraryResponseFromModel(findBook.get(), responseDto);
 
         return librarysResponseDto;
     }
 
+    @Transactional
     @Cacheable(cacheNames = "libraryCache", key = "#name", unless = "#result == null")
     @Override
     public MLibrarysResponseDto findByName(String name) throws Exception {
-
         Optional<MLibrarysModel> findBook = librarysRepository.findByName(name);
+        logger.info("melakukan pencarian data berdasarkan nama ");
         if(findBook.isEmpty()){
             throw  new LibraryFindByIdNotFoundException("data tidak ditemukan");
         }
+        logger.info("data ditemukan, berikan response balik ");
         MBooksResponseDto responseDto = buildBookResponseFromModel(findBook.get().getBooks());
         MLibrarysResponseDto librarysResponseDto = buildLibraryResponseFromModel(findBook.get(), responseDto);
 
